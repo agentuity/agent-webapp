@@ -49,7 +49,7 @@ This will start your project and open a new browser window connecting your agent
 
 ### Development Mode: Part Deux
 
-This project also contains an HTML test console (`index.html`), which comes pre-loaded with a variety of test cases. To start, edit the URLs and IDs at the top of the HTML file and then open the file in your browser.
+This project also contains an HTML test console (`test.html`), which comes pre-loaded with a variety of test cases. To start, edit the URLs and IDs at the top of the HTML file and then open the file in your browser.
 
 ## 🌐 Deployment
 
