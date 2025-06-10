@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    // Grab this value when you run `agentuity dev` locally
+    const PUBLIC_URL = "https://dev-uch8ktoys.agentuity.run";
+
+    // Swap these IDs to match your `agentuity.yaml` file values
+    const AGENT_CRON_GENERATOR = "agent_b4f630df2a7962d5262e6c440eed1c36";
+    const AGENT_LOG_ASSISTANT = "agent_7a4fa9f4f9b6b26c808e66bbc8157594";
+  </script>
+  <meta charset="UTF-8">
+  <title>Agent Test Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: "Geist Mono", monospace;
+      font-optical-sizing: auto;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 1.35;
+      margin: 0;
+    }
+    body {
+      background: #001919;
+      color: #FFF;
+      display: flex;
+      flex-direction: column;
+      font-family: sans-serif;
+      font-size: 14px;
+      gap: 20px;
+      margin: 2em;
+    }
+    select,
+    button {
+      border-radius: 0;
+      border: 0;
+      color: #000;
+      cursor: pointer;
+    }
+    select {
+      background: #FFF;
+      padding: 6px;
+    }
+    button {
+      background: #699;
+      padding: 6px 12px;
+    }
+    button:hover {
+      background: #FFF;
+    }
+    h1 {
+      line-height: 1;
+    }
+    p {
+      color: #699;
+      max-width: 700px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+    }
+    .controls #buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .console {
+      display: flex;
+      gap: 20px;
+      justify-content: space-between;
+    }
+    .console #request,
+    .console #result {
+      background: #000;
+      font-size: 14px;
+      padding: 1em;
+      white-space: pre-wrap;
+      width: 50%;
+      word-break: break-word;
+    }
+  </style>
+  <script>
+    const startTest = (reqObject) => {
+        document.getElementById('result').textContent = 'Loading...';
+        document.getElementById('request').textContent = reqObject.log ?? reqObject;
+
+        const agent = document.getElementById('agent').value;
+        const url = `${PUBLIC_URL}/${agent}`;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: typeof reqObject === 'object' ? JSON.stringify(reqObject) : reqObject
+        })
+        .then(async res => {
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let result = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) break;
+                
+                result += decoder.decode(value, { stream: true });
+                
+                document.getElementById('result').textContent = result;
+            }
+        })
+        .catch(err => {
+            document.getElementById('result').textContent = 'Error: ' + err;
+        });
+    };
+
+    // Button configs per agent
+    const buttonConfigs = {
+      [AGENT_CRON_GENERATOR]: [
+        { label: "Valid Cron", action: () => startTest('Every Monday at 10:15am and 10:30am') },
+        { label: "Invalid Cron", action: () => startTest('I like turtles') }
+      ],
+      [AGENT_LOG_ASSISTANT]: [
+        {
+          label: "Agentuity Error",
+          action: () => startTest({
+            "logType": "ERROR",
+            "environment": {
+              "platform": "bun",
+              "framework": "vercel-ai-sdk"
+            },
+            "log": "Error in agent run: Error: handler returned undefined instead of a response at <anonymous> (/app/.agentuity/index.js:97968:27) at processTicksAndRejections (native:7:39)"
+          })
+        },
+        {
+          label: "Generic Error",
+          action: () => startTest({
+            "logType": "ERROR",
+            "environment": {
+              "platform": "bun",
+              "framework": "vercel-ai-sdk"
+            },
+            "log": "Error verifying webhook signature: TypeError: [@octokit/webhooks-methods] secret, eventPayload & signature required at verify (/node_modules/@octokit/webhooks-methods/dist-node/index.js:27:10) at verify (/node_modules/@octokit/webhooks-methods/dist-node/index.js:25:22) at verifyGitHubWebhook (/app/src/utils/github.ts:41:24) at verifyGitHubWebhook (/app/src/utils/github.ts:11:1) at ChangelogAgent (/app/src/agents/controller/index.ts:56:36) at processTicksAndRejections (native) { [message]: '[@octokit/webhooks-methods] secret, eventPayload & signature required', [stack]: 'Error: [@octokit/webhooks-methods] secret, eventPayload & signature required\n' + ' at verify (/node_modules/@octokit/webhooks-methods/dist-node/index.js:27:10)\n' + ' at verify (/node_modules/@octokit/webhooks-methods/dist-node/index.js:25:22)\n' + ' at verifyGitHubWebhook (/app/src/utils/github.ts:41:24)\n' + ' at verifyGitHubWebhook (/app/src/utils/github.ts:11:1)\n' + ' at ChangelogAgent (/app/src/agents/controller/index.ts:56:36)\n' + ' at processTicksAndRejections (native)', [line]: 0, [column]: 0 }"
+          })
+        },
+        {
+          label: "Generic Log",
+          action: () => startTest({
+            "logType": "INFO",
+            "environment": {
+              "platform": "bun",
+              "framework": "vercel-ai-sdk"
+            },
+            "log": "Received webhook request { env: 'production', metadata: { headers: { accept: '*/*', 'content-length': '8458', 'content-type': 'application/json', 'user-agent': 'GitHub-Hookshot/5605361', via: '1.1 google', 'x-cloud-trace-context': 'ac1cbbb232cd5dfaf12647/6430171875780497115', 'x-forwarded-for': '140.82.115.76,34.120.144.90', 'x-forwarded-proto': 'https', 'x-github-delivery': '67efe230-3d8e-11f0-9955-8a4c02ee31f7', 'x-github-event': 'create', 'x-github-hook-id': '534777425', 'x-github-hook-installation-target-id': '1', 'x-github-hook-installation-target-type': 'organization', 'x-hub-signature': 'sha1=f4b34f3119e94328e37651d361b', 'x-hub-signature-256': 'sha256=c1f246953a1f4ad7e450372491a57049269085fbe3d' } }, data: '{'ref':'main','ref_type':'branch','master_branch':'main','description':'Cloned from potofpie/agentuity-chat','pusher_type':'user','repository':{'id':993438807,'node_id':'R_kgDOOzasVw','name':'test-repo','full_name':'agentuity/test-repo','private':true,'owner':{'login':'agentuity','id':1,'node_id':'O_kgDOC5td0g','avatar_url':'https://avatars.githubusercontent.com/u/1?v=4','gravatar_id':'','url':'https://api.github.com/users/agentuity','html_url':'https://github.com/agentuity','followers_url':'https://api.github.com/users/agentuity/followers','following_url':'https://api.github.com/users/agentuity/following{/other_user}','gists_url':'https://api.github.com/users/agentuity/gists{/gist_id}','starred_url':'https://api.github.com/users/agentuity/starred{/owner}{/repo}','subscriptions_url':'https://api.github.com/users/agentuity/subscriptions','organizations_url':'https://api.github.com/users/agentuity/orgs','repos_url':'https://api.github.com/users/agentuity/repos','events_url':'https://api.github.com/users/agentuity/events{/privacy}','received_events_url':'https://api.github.com/users/agentuity/received_events','type':'Organization','user_view_type':'public','site_admin':false},'html_url':'https://github.com/agentuity/test-repo','description':'Cloned from potofpie/agentuity-chat','fork':false,'url':'https://api.github.com/repos/agentuity/test-repo','forks_url':'https://api.github.com/repos/agentuity/test-repo/forks','keys_url':'https://api.github.com/repos/agentuity/test-repo/keys{/key_id}','collaborators_url':'https://api.github.com/repos/agentuity/test-repo/collaborators{/collaborator}','teams_url':'https://api.github.com/repos/agentuity/test-repo/teams','hooks_url':'https://api.github.com/repos/agentuity/test-repo/hooks','issue_events_url':'https://api.github.com/repos/agentuity/test-repo/issues/events{/number}','events_url':'https://api.github.com/repos/agentuity/test-repo/events','assignees_url':'https://api.github.com/repos/agentuity/test-repo/assignees{/user}','branches_url':'https://api.github.com/repos/agentuity/test-repo/branches{/branch}','tags_url':'https://api.github.com/repos/agentuity/test-repo/tags','blobs_url':'https://api.github.com/repos/agentuity/test-repo/git/blobs{/sha}','git_tags_url':'https://api.github.com/repos/agentuity/test-repo/git/tags{/sha}','git_refs_url':'https://api.github.com/repos/agentuity/test-repo/git/refs{/sha}','trees_url':'https://api.github.com/repos/agentuity/test-repo/git/trees{/sha}','statuses_url':'https://api.github.com/repos/agentuity/test-repo/statuses/{sha}','languages_url':'https://api.github.com/repos/agentuity/test-repo/languages','stargazers_url':'https://api.github.com/repos/agentuity/test-repo/stargazers','contributors_url':'https://api.github.com/repos/agentuity/test-repo/contributors','subscribers_url':'https://api.github.com/repos/agentuity/test-repo/subscribers','subscription_url':'https://api.github.com/repos/agentuity/test-repo/subscription','commits_url':'https://api.github.com/repos/agentuity/test-repo/commits{/sha}','git_commits_url':'https://api.github.com/repos/agentuity/test-repo/git/commits{/sha}','comments_url':'https://api.github.com/repos/agentuity/test-repo/comments{/number}','issue_comment_url':'https://api.github.com/repos/agentuity/test-repo/issues/comments{/number}','contents_url':'https://api.github.com/repos/agentuity/test-repo/contents/{+path}','compare_url':'https://api.github.com/repos/agentuity/test-repo/compare/{base}...{head}','merges_url':'https://api.github.com/repos/agentuity/test-repo/merges','archive_url':'https://api.github.com/repos/agentuity/test-repo/{archive_format}{/ref}','downloads_url':'https://api.github.com/repos/agentuity/test-repo/downloads','issues_url':'https://api.github.com/repos/agentuity/test-repo/issues{/number}','pulls_url':'https://api.github.com/repos/agentuity/test-repo/pulls{/number}','milestones_url':'https://api.github.com/repos/agentuity/test-repo/milestones{/number}','notifications_url':'https://api.github.com/repos/agentuity/test-repo/notifications{?since,all,participating}','labels_url':'https://api.github.com/repos/agentuity/test-repo/labels{/name}','releases_url':'https://api.github.com/repos/agentuity/test-repo/releases{/id}','deployments_url':'https://api.github.com/repos/agentuity/test-repo/deployments','created_at':'2025-05-30T19:43:38Z','updated_at':'2025-05-30T19:43:39Z','pushed_at':'2025-05-30T19:43:39Z','git_url':'git://github.com/agentuity/test-repo.git','ssh_url':'git@github.com:agentuity/test-repo.git','clone_url':'https://github.com/agentuity/test-repo.git','svn_url':'https://github.com/agentuity/test-repo','homepage':null,'size':0,'stargazers_count':0,'watchers_count':0,'language':null,'has_issues':false,'has_projects':false,'has_downloads':true,'has_wiki':false,'has_pages':false,'has_discussions':false,'forks_count':0,'mirror_url':null,'archived':false,'disabled':false,'open_issues_count':0,'license':null,'allow_forking':false,'is_template':false,'web_commit_signoff_required':false,'topics':[],'visibility':'private','forks':0,'open_issues':0,'watchers':0,'default_branch':'main','custom_properties':{}},'organization':{'login':'agentuity','id':1,'node_id':'O_kgDOC5td0g','url':'https://api.github.com/orgs/agentuity','repos_url':'https://api.github.com/orgs/agentuity/repos','events_url':'https://api.github.com/orgs/agentuity/events','hooks_url':'https://api.github.com/orgs/agentuity/hooks','issues_url':'https://api.github.com/orgs/agentuity/issues','members_url':'https://api.github.com/orgs/agentuity/members{/member}','public_members_url':'https://api.github.com/orgs/agentuity/public_members{/member}','avatar_url':'https://avatars.githubusercontent.com/u/1?v=4','description':'Deploy, run, and scale autonomous agents on infrastructure designed for the future, not the past.'},'enterprise':{'id':1,'slug':'agentuity-inc','name':'Agentuity, inc.','node_id':'E_kgDOAAROFw','avatar_url':'https://avatars.githubusercontent.com/b/1?v=4','description':'','website_url':'https://agentuity.com/','html_url':'https://github.com/enterprises/agentuity-inc','created_at':'2025-01-31T20:20:49Z','updated_at':'2025-05-18T15:33:44Z'},'sender':{'login':'agentuity-agent[bot]','id':202147424,'node_id':'BOT_kg1yGYA','avatar_url':'https://avatars.githubusercontent.com/in/1168661?v=4','gravatar_id':'','url':'https://api.github.com/users/agentuity-bot','html_url':'https://github.com/apps/agentuity-agent','followers_url':'https://api.github.com/users/agentuity-bot/followers','following_url':'https://api.github.com/users/agentuity-bot/following{/other_user}','gists_url':'https://api.github.com/users/agentuity-bot/gists{/gist_id}','starred_url':'https://api.github.com/users/agentuity-bot/starred{/owner}{/repo}','subscriptions_url':'https://api.github.com/users/agentuity-bot/subscriptions','organizations_url':'https://api.github.com/users/agentuity-bot/orgs','repos_url':'https://api.github.com/users/agentuity-bot/repos','events_url':'https://api.github.com/users/agentuity-bot/events{/privacy}','received_events_url':'https://api.github.com/users/agentuity-bot/received_events','type':'Bot','user_view_type':'public','site_admin':false}}' }"
+          })
+        },
+        {
+          label: "Content Summary",
+          action: () => startTest({
+            "logType": "DEBUG",
+            "environment": {
+              "platform": "bun",
+              "framework": "vercel-ai-sdk"
+            },
+            "log": "EMAIL BODY: From: Test User <no-reply@agentuity.com> To: 65449d38bebf4990f432@agentuity.run Subject: test Message-ID: <CAAFPdanfVuL2uLM0L_Rda9CQ_WBtXnZtTPg+1hYmMvTNXBZNxw@mail.gmail.com> Date: Fri, 30 May 2025 15:51:08 -0500 MIME-Version: 1.0 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=1e100.net; s=20230601; t=1748638279; x=1749243079; h=to:subject:message-id:date:from:mime-version:x-gm-message-state :from:to:cc:subject:date:message-id:reply-to; X-Received: by 2002:a05:690c:9b03:b0:70d:f09a:bb4d with SMTP id 00721157ae682-70f97f0487b3.0.1748638279443; Fri, 30 May 2025 13:51:19 -0700 (PDT) X-Gm-Features: AX0GCFvLW62BdG6coccXZa0YNsNrsDd2TS2HKuabm7NE Received: by mail-yb1-f177.google.com with SMTP id 3f1490d57ef6462393276.0 for <65449d38bebf4990f432@agentuity.run>; Fri, 30 May 2025 13:51:20 -0700 X-Gm-Message-State: AOJu0Ywng9biZr5tt7l9DkDBo/CKuMuQV6yJmPKpwWLy YfsT/51o4xNi0W7rSFMbJfcoZeirKIZ2webaPmM7bZbBZfpTA5G4/vC+1wQ mb5GKKiZcJi1wQfSKx2vif8TC6rMe+YFOMNJsRdWYPX58EUQ== Content-Type: multipart/mixed; boundary=boundary_c0ddc2305cc2a4947eadeaac3a0 --boundary_c0ddc2305cc2a4947eadeaac3a0 Content-Type: multipart/alternative; boundary=boundary_341cda122ae341730ad1fdd167d --boundary_341cda122ae341730ad1fdd167d Content-Type: text/plain; charset=utf-8 Content-Transfer-Encoding: 7bit hey there 💫 --boundary_341cda122ae341730ad1fdd167d Content-Type: text/html; charset=utf-8 Content-Transfer-Encoding: 7bit <div dir='ltr'>hey there 💫</div> --boundary_341cda122ae341730ad1fdd167d-- --boundary_c0ddc2305cc2a4947eadeaac3a0--"
+          })
+        },
+        {
+          label: "Invalid Log",
+          action: () => startTest({
+            "logType": "ERROR",
+            "environment": {
+              "platform": "bun",
+              "framework": "vercel-ai-sdk"
+            },
+            "log": "I like turtles."
+          })
+        }
+      ]
+    };
+
+    function renderButtons() {
+      const agent = document.getElementById('agent').value;
+      const buttonsDiv = document.getElementById('buttons');
+      
+      buttonsDiv.innerHTML = '';
+      
+      (buttonConfigs[agent] || []).forEach(cfg => {
+        const btn = document.createElement('button');
+        
+        btn.textContent = cfg.label;
+        btn.onclick = cfg.action;
+        
+        buttonsDiv.appendChild(btn);
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const agentSelect = document.getElementById('agent');
+
+      agentSelect.innerHTML = `
+        <option value="${AGENT_LOG_ASSISTANT}">LogAssistant</option>
+        <option value="${AGENT_CRON_GENERATOR}">CronGenerator</option>
+      `;
+
+      agentSelect.value = AGENT_LOG_ASSISTANT;
+
+      document.getElementById('agent').addEventListener('change', renderButtons);
+
+      renderButtons();
+    });
+  </script>
+</head>
+<body>
+  <h1>Agent Test Console</h1>
+  
+  <p>This console is provided to help you quickly test various pre-defined inputs for your agents. It is recommended to use the Agentuity DevMode if you want to actively develop this agent any further.</p>
+  
+  <div class="controls">
+    <select id="agent"></select>
+    <div id="buttons"></div>
+  </div>
+  
+  <div class="console">
+    <div id="request"></div>
+    <div id="result"></div>
+  </div>
+</body>
+</html>
