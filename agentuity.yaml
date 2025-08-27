@@ -78,3 +78,9 @@ agents:
   - id: agent_7a4fa9f4f9b6b26c808e66bbc8157594
     name: LogAssistant
     description: Parses session logs and tries to provide helpful tips to a user
+  - id: agent_98aa2ee51a901bd53f72d2110aa3fef6
+    name: RegexGenerator
+    description: Generates regex for enviroment
+  - id: agent_28a5417404dcd3e132e4ab7f428733e0
+    name: RegexExplanation
+    description: Tell the user what a regex does
